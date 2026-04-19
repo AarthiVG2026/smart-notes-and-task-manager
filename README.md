@@ -4,7 +4,6 @@ A highly premium, locally-run productivity workspace featuring built-in AI Heuri
 
 ## 📸 Screenshot
 
-*(Add your screenshot here! Replace `path/to/screenshot.png` with the actual file name you upload. It's best to place the image in the `static` folder)*
 ![Project Dashboard](static/images/screenshot.png)
 
 ## ✨ Premium Features
@@ -47,3 +46,5 @@ This project stands out from standard CRUD applications by implementing several 
 ## 💡 Showcase
 
 This application is designed as a standout piece for developer portfolios. Its combination of Custom NLP algorithms, native browser APIs (Speech Recognition), and a meticulous CSS architecture demonstrates a solid grasp of complete full-stack web development extending well beyond standard tutorials.
+
+*Developed by AARTHI V G*
