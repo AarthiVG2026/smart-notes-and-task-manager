@@ -5,7 +5,7 @@ A highly premium, locally-run productivity workspace featuring built-in AI Heuri
 ## 📸 Screenshot
 
 *(Add your screenshot here! Replace `path/to/screenshot.png` with the actual file name you upload. It's best to place the image in the `static` folder)*
-![Project Dashboard](static/screenshot.png)
+![Project Dashboard](static/images/screenshot.png)
 
 ## ✨ Premium Features
 
