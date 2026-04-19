@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks - Smart Notes & Task Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <h1 class="nav-title">Smart Notes & Task Manager</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-nav">Dashboard</a>
+                <a href="{{ url_for('notes') }}" class="btn btn-nav">Notes</a>
+                <span class="username">👤 {{ session.username }}</span>
+                <button onclick="toggleDarkMode()" class="btn btn-dark-toggle" title="Toggle Dark Mode">🌓</button>
+                <a href="{{ url_for('logout') }}" class="btn btn-logout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="page-header">
+            <h2>✓ My Tasks</h2>
+            <button onclick="showAddTaskModal()" class="btn btn-primary">+ Add Task</button>
+        </div>
+
+        <div class="tasks-container">
+            {% if tasks %}
+                {% for task in tasks %}
+                <div class="glass-card task-card-full priority-{{ task.priority|lower }} {% if task.status == 'completed' %}task-completed{% endif %} {% if task.is_overdue %}task-overdue{% endif %}">
+                    <div class="task-header">
+                        <h3>{{ task.task_name }}</h3>
+                        {% if task.is_overdue %}
+                        <span class="overdue-badge">⚠️ OVERDUE</span>
+                        {% endif %}
+                    </div>
+                    <div class="task-details">
+                        <div class="task-info">
+                            <span class="priority-badge priority-{{ task.priority|lower }}">
+                                {% if task.priority == 'High' %}🔴{% elif task.priority == 'Medium' %}🟠{% else %}🟢{% endif %}
+                                {{ task.priority }} Priority
+                            </span>
+                            <span class="due-date {% if task.is_overdue %}overdue-text{% endif %}">
+                                📅 Due: {{ task.due_date }}
+                            </span>
+                            <span class="status-badge status-{{ task.status }}">
+                                {% if task.status == 'completed' %}✅{% else %}⏳{% endif %}
+                                {{ task.status|title }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <form method="POST" action="{{ url_for('complete_task', id=task.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            {% if task.status == 'pending' %}
+                            <button type="button" class="btn btn-focus" onclick="startZenMode(`{{ task.task_name|replace('`', '\\`') }}`)" style="background:#8b5cf6; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; margin-right:5px;">🎯 Focus</button>
+                            {% endif %}
+                            <button type="submit" class="btn btn-complete">
+                                {% if task.status == 'completed' %}↩️ Mark Pending{% else %}✅ Complete{% endif %}
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('delete_task', id=task.id) }}" style="display:inline;" onsubmit="return confirm('Delete this task?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-delete">🗑️ Delete</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="empty-message">No tasks yet. Add your first task!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="addTaskModal" class="modal">
+        <div class="modal-content glass-card">
+            <span class="close" onclick="closeAddTaskModal()">&times;</span>
+            <h2>Create New Task</h2>
+            <form method="POST" action="{{ url_for('add_task') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label for="task_name">Task Name</label>
+                    <input type="text" id="task_name" name="task_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="priority">Priority</label>
+                    <select id="priority" name="priority" required>
+                        <option value="Low">🟢 Low</option>
+                        <option value="Medium">🟠 Medium</option>
+                        <option value="High">🔴 High</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="due_date">Due Date</label>
+                    <input type="date" id="due_date" name="due_date" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Task</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="zenModeOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#0f172a; z-index:9999; flex-direction:column; justify-content:center; align-items:center; color:white; font-family:'Courier New', Courier, monospace;">
+        <h2 id="zenTaskName" style="font-size:2.5rem; margin-bottom:20px; color:#8b5cf6; text-align:center; max-width:80%;">Task Name</h2>
+        <div id="zenTimer" style="font-size:10rem; font-weight:bold; margin-bottom:40px; text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);">25:00</div>
+        <div style="display:flex; gap:20px;">
+            <button onclick="toggleZenTimer()" id="zenToggleBtn" style="padding:15px 30px; font-size:1.2rem; background:#10b981; color:white; border:none; border-radius:30px; cursor:pointer; min-width:120px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.3);">▶ Start</button>
+            <button onclick="stopZenMode()" style="padding:15px 30px; font-size:1.2rem; background:#ef4444; color:white; border:none; border-radius:30px; cursor:pointer; min-width:120px; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.3);">✖ Exit</button>
+        </div>
+    </div>
+
+    <script>
+        function showAddTaskModal() {
+            document.getElementById('addTaskModal').style.display = 'block';
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('due_date').setAttribute('min', today);
+        }
+
+        function closeAddTaskModal() {
+            document.getElementById('addTaskModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('addTaskModal');
+            if (event.target == modal) {
+                closeAddTaskModal();
+            }
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // Zen Mode Logic
+        let zenInterval;
+        let zenTimeRemaining = 25 * 60; // 25 mins
+        let isZenRunning = false;
+
+        function startZenMode(taskName) {
+            document.getElementById('zenTaskName').innerText = taskName;
+            document.getElementById('zenModeOverlay').style.display = 'flex';
+            zenTimeRemaining = 25 * 60;
+            updateZenDisplay();
+            isZenRunning = false;
+            document.getElementById('zenToggleBtn').innerText = '▶ Start';
+            document.getElementById('zenToggleBtn').style.background = '#10b981';
+        }
+
+        function toggleZenTimer() {
+            isZenRunning = !isZenRunning;
+            const btn = document.getElementById('zenToggleBtn');
+            if (isZenRunning) {
+                btn.innerText = '⏸ Pause';
+                btn.style.background = '#f59e0b';
+                zenInterval = setInterval(() => {
+                    zenTimeRemaining--;
+                    updateZenDisplay();
+                    if (zenTimeRemaining <= 0) {
+                        clearInterval(zenInterval);
+                        playAlarm();
+                        alert("Pomodoro session complete! Great job focusing.");
+                        stopZenMode();
+                    }
+                }, 1000);
+            } else {
+                btn.innerText = '▶ Resume';
+                btn.style.background = '#10b981';
+                clearInterval(zenInterval);
+            }
+        }
+
+        function updateZenDisplay() {
+            const m = Math.floor(zenTimeRemaining / 60).toString().padStart(2, '0');
+            const s = (zenTimeRemaining % 60).toString().padStart(2, '0');
+            document.getElementById('zenTimer').innerText = `${m}:${s}`;
+        }
+
+        function stopZenMode() {
+            clearInterval(zenInterval);
+            document.getElementById('zenModeOverlay').style.display = 'none';
+        }
+
+        function playAlarm() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // 440 Hz
+                oscillator.connect(audioCtx.destination);
+                oscillator.start();
+                setTimeout(() => { oscillator.stop(); }, 1000);
+            } catch(e) {
+                console.log("Audio not supported or blocked");
+            }
+        }
+    </script>
+</body>
+</html>
