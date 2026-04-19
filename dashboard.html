@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Smart Notes & Task Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <h1 class="nav-title">Smart Notes & Task Manager</h1>
+            <div class="nav-links">
+                <span class="username">👤 {{ session.username }}</span>
+                <button onclick="toggleDarkMode()" class="btn btn-dark-toggle" title="Toggle Dark Mode">🌓</button>
+                <a href="{{ url_for('logout') }}" class="btn btn-logout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="stats-container">
+            <div class="glass-card stat-card">
+                <h3>📋 Total Tasks</h3>
+                <p class="stat-number">{{ total_tasks }}</p>
+            </div>
+            <div class="glass-card stat-card">
+                <h3>✅ Completed</h3>
+                <p class="stat-number">{{ completed_tasks }}</p>
+            </div>
+            <div class="glass-card stat-card">
+                <h3>📅 Today's Pending</h3>
+                <p class="stat-number">{{ today_pending }}</p>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>📝 Recent Notes</h2>
+                    <a href="{{ url_for('notes') }}" class="btn btn-secondary">View All</a>
+                </div>
+                <div class="notes-grid">
+                    {% if notes %}
+                        {% for note in notes[:6] %}
+                        <div class="glass-card note-card">
+                            {% if note.pinned %}
+                            <span class="pin-badge">📌</span>
+                            {% endif %}
+                            <h3>{{ note.title }}</h3>
+                            <p>{{ note.content[:100] }}{% if note.content|length > 100 %}...{% endif %}</p>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty-message">No notes yet. Create your first note!</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>✓ Recent Tasks</h2>
+                    <a href="{{ url_for('tasks') }}" class="btn btn-secondary">View All</a>
+                </div>
+                <div class="tasks-list">
+                    {% if tasks %}
+                        {% for task in tasks[:6] %}
+                        <div class="glass-card task-card priority-{{ task.priority|lower }} {% if task.status == 'completed' %}task-completed{% endif %} {% if task.is_overdue %}task-overdue{% endif %}">
+                            <div class="task-content">
+                                <h4>{{ task.task_name }}</h4>
+                                <div class="task-meta">
+                                    <span class="priority-badge">{{ task.priority }}</span>
+                                    <span class="due-date {% if task.is_overdue %}overdue-text{% endif %}">
+                                        📅 {{ task.due_date }}
+                                    </span>
+                                    <span class="status-badge">{{ task.status }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty-message">No tasks yet. Add your first task!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+    </script>
+</body>
+</html>
